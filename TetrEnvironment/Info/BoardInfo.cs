@@ -150,6 +150,15 @@ public class BoardInfo
 
 	public bool PushGarbageLine(int column, int size)
 	{
+		if(size>0){
+			if(column == _manager.CustomStats.lastAttackCol){
+				_manager.CustomStats.attackTanked[_manager.CustomStats.attackTanked.Count-1]+=size;
+			}else{
+				_manager.CustomStats.attackTanked.Add(size);
+				_manager.CustomStats.lastAttackCol = column;
+			}
+		}
+
 		for (int y = 0; y < Height - 1; y++)
 		{
 			for (int x = 0; x < Width; x++)

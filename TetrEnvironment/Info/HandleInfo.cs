@@ -15,6 +15,7 @@ public class HandleInfo
 
 	public void KeyDown(EventKeyInputData @event)	
 	{
+		_manager.CustomStats.keypresses+=1;
 		if ((int)@event.key < 8)
 			_manager.PressedKeys[(int)@event.key] = true;
 		

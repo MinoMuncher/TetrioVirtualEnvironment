@@ -71,7 +71,7 @@ public class Options
 		Passthrough = fullData.options.passthrough ?? PassthroughType.Limited;
 		GarbageSpeed = fullData.options.garbagespeed ?? 20;
 		BagType = fullData.options.bagtype ?? BagType.Bag7;
-		GarbagePhase = fullData.options.garbagephase ?? 0;
+        GarbagePhase = fullData.options.garbagephase == null ? 0 : (fullData.options.garbagephase == true ? 1 : 0);
 		GarbageQueue = fullData.options.garbagequeue ?? false;
 		GarbageHoleSize = fullData.options.garbageholesize ?? 1;
 		AllClears = fullData.options.allclears ?? true;

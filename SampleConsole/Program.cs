@@ -2,12 +2,14 @@
 
 using System.Data.Common;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using TetrEnvironment;
 using TetrEnvironment.Constants;
 using TetrLoader;
 using TetrLoader.Enum;
 using Environment = TetrEnvironment.Environment;
-
+/*
 [DllImport("kernel32.dll", SetLastError = true)]
 static extern bool SetConsoleMode(IntPtr hConsoleHandle, int mode);
 
@@ -20,7 +22,7 @@ static extern IntPtr GetStdHandle(int handle);
 var handle = GetStdHandle(-11);
 int mode;
 GetConsoleMode(handle, out mode);
-SetConsoleMode(handle, mode | 0x4);
+SetConsoleMode(handle, mode | 0x4);*/
 
 Console.WriteLine("Enter replay filepath or 'd' to all test mode.");
 string input = Console.ReadLine();
@@ -61,6 +63,13 @@ else
 		Console.Clear();
 		while (true)
 		{
+				if (!replay.NextFrame()){
+					Console.WriteLine(JsonSerializer.Serialize(replay.Environments[0].CustomStatsLog));
+
+					break;
+
+				}
+			/*
 			PrintBoard(replay.Environments,true);
 			input = Console.ReadLine();
 			if (input == "")
@@ -69,8 +78,9 @@ else
 					break;
 			}
 			else
-				replay.JumpFrame(int.Parse(input));
+				replay.JumpFrame(int.Parse(input));*/
 		}
+
 
 		goto START;
 	}

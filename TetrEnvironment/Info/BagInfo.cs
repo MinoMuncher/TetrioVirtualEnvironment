@@ -84,7 +84,9 @@ public class BagInfo
 				break;
 		}
 
-		foreach (var mino in list)
+		foreach (var mino in list){
 			_manager.GameData.Bag.Enqueue(mino);
+			_manager.GameData.TotalQueue.Add(mino);
+		}
 	}
 }

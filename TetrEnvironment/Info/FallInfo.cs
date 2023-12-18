@@ -140,12 +140,17 @@ public class FallInfo
 		if (_manager.GameData.Falling.Locking > _manager.GameData.Options.LockTime ||
 		    _manager.GameData.Falling.ForceLock ||
 		    _manager.GameData.Falling.LockResets > _manager.GameData.Options.LockResets &&
-		    !_manager.GameData.Options.InfiniteMovement)
-			Lock(value);
+		    !_manager.GameData.Options.InfiniteMovement){
+				var stamp = _manager.CurrentFrame + _manager.GameData.SubFrame;
+				_manager.CustomStats.frameDelay = stamp - _manager.CustomStats.frameStamp;
+				_manager.CustomStats.frameStamp = stamp;
+				Lock(value);
+			}
 	}
 
 	public void Lock(bool emptyDrop = false)
 	{
+		_manager.CustomStats.shape = _manager.GameData.Falling.Type;
 		_manager.GameData.Falling.Sleep = true;
 
 		_manager.BoardInfo.PushActiveToStack();
@@ -163,6 +168,11 @@ public class FallInfo
 			_manager.WaitingFrameInfo.WaitFrames(are, GarbageInfo.WaitingFrameType.Are, null);
 		else
 			Next(null);
+
+		_manager.CustomStats.board = (Tetromino.MinoType[]?) _manager.GameData.Board.Clone();
+		
+		_manager.CustomStatsLog.Add(_manager.CustomStats.Clone());
+		_manager.CustomStats = new();
 	}
 
 	//empty means first swap,

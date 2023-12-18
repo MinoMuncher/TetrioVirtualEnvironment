@@ -23,8 +23,10 @@ public class LineInfo
 		    _manager.GameData.Options.SpinBonuses == SpinBonusesType.Stupid)
 			spinType = _manager.GameData.Falling.SpinType;
 
-		//AnnounceDownstack(completedLines);
 
+		_manager.CustomStats.linesCleared += completedLines.Count;
+
+		AnnounceDownstack(completedLines);
 		//AnnounceDownstack();
 		if (completedLines.Count > 0)
 			_manager.BoardInfo.RemoveLinesFromStack(completedLines);
@@ -46,13 +48,32 @@ public class LineInfo
 		throw new NotImplementedException();
 	}
 
-	public void AnnounceDownstack()
+	public void AnnounceDownstack(List<int> lines)
 	{
-		throw new NotImplementedException();
+		var downstackCleared = 0;
+		foreach(int line in lines){
+
+			var flag = false;
+			for (int x = 0; x < _manager.BoardInfo.Width; x++)
+			{
+				if (_manager.GameData.Board[x + line * _manager.BoardInfo.Width] == Tetromino.MinoType.Empty)
+				{
+					flag = true;
+					break;
+				}
+			}
+
+			if (flag)downstackCleared+=1;
+
+		}
+		_manager.CustomStats.downstackCleared+=downstackCleared;
 	}
 
 	public bool AnnounceLines(int completedLineCount, Falling.SpinTypeKind spinbonus)
 	{
+		_manager.CustomStats.BTBChain = _manager.GameData.Stats.BTB;
+		_manager.CustomStats.combo = _manager.GameData.Stats.Combo;
+
 		bool isBTB = false;
 
 		if (completedLineCount > 0)
@@ -67,11 +88,12 @@ public class LineInfo
 
 			if (completedLineCount >= 4)
 				isBTB = true;
-			else
+			else if (spinbonus != Falling.SpinTypeKind.Null)
 			{
-				if (spinbonus != Falling.SpinTypeKind.Null)
-					isBTB = true;
+				isBTB = true;
 			}
+
+			_manager.CustomStats.BTBClear = isBTB;
 
 			if (isBTB)
 			{
@@ -96,63 +118,95 @@ public class LineInfo
 
 		var score = 0;
 		var garbageValue = 0.0;
+		string clearType = "NONE";
 
 		switch (completedLineCount)
 		{
 			case 0:
-				if (spinbonus == Falling.SpinTypeKind.Mini)
+				if (spinbonus == Falling.SpinTypeKind.Mini){
 					garbageValue = Garbage.TSPIN_MINI;
-				else if (spinbonus == Falling.SpinTypeKind.Normal)
+					clearType = "TSPIN_MINI";
+				}
+				else if (spinbonus == Falling.SpinTypeKind.Normal){
 					garbageValue = Garbage.TSPIN;
+					clearType = "TSPIN";
+				}
 				break;
 
 			case 1:
-				if (spinbonus == Falling.SpinTypeKind.Mini)
+				if (spinbonus == Falling.SpinTypeKind.Mini){
 					garbageValue = Garbage.TSPIN_MINI_SINGLE;
-				else if (spinbonus == Falling.SpinTypeKind.Normal)
+					clearType = "TSPIN_MINI_SINGLE";
+					}
+				else if (spinbonus == Falling.SpinTypeKind.Normal){
 					garbageValue = Garbage.TSPIN_SINGLE;
-				else
+					clearType = "TSPIN_SINGLE";
+				}
+				else{
 					garbageValue = Garbage.SINGLE;
+					clearType = "SINGLE";
+					}
 				break;
 
 			case 2:
-				if (spinbonus == Falling.SpinTypeKind.Mini)
+				if (spinbonus == Falling.SpinTypeKind.Mini){
 					garbageValue = Garbage.TSPIN_MINI_DOUBLE;
-				else if (spinbonus == Falling.SpinTypeKind.Normal)
+					clearType = "TSPIN_MINI_DOUBLE";
+					}
+				else if (spinbonus == Falling.SpinTypeKind.Normal){
 					garbageValue = Garbage.TSPIN_DOUBLE;
-				else
+					clearType = "TSPIN_DOUBLE";
+					}
+				else{
 					garbageValue = Garbage.DOUBLE;
+					clearType = "DOUBLE";
+					}
 				break;
 
 			case 3:
-				if (spinbonus != Falling.SpinTypeKind.Null)
+				if (spinbonus != Falling.SpinTypeKind.Null){
 					garbageValue = Garbage.TSPIN_TRIPLE;
-				else
+					clearType = "TSPIN_TRIPLE";
+					}
+				else{
 					garbageValue = Garbage.TRIPLE;
+					clearType = "TRIPLE";
+					}
 				break;
 
 			case 4:
-				if (spinbonus != Falling.SpinTypeKind.Null)
+				if (spinbonus != Falling.SpinTypeKind.Null){
 					garbageValue = Garbage.TSPIN_QUAD;
-				else
+					clearType = "TSPIN_QUAD";
+					}
+				else{
 					garbageValue = Garbage.QUAD;
+					clearType = "QUAD";
+					}
 				break;
 
 			case 5:
-				if (spinbonus != Falling.SpinTypeKind.Null)
+				if (spinbonus != Falling.SpinTypeKind.Null){
 					garbageValue = Garbage.TSPIN_PENTA;
-				else
+					clearType = "TSPIN_PENTA";
+					}
+				else{
 					garbageValue = Garbage.PENTA;
+					clearType = "PENTA";
+					}
 				break;
 
 			default:
 				var clearDiff = completedLineCount - 5;
-				if (spinbonus != Falling.SpinTypeKind.Null)
+				if (spinbonus != Falling.SpinTypeKind.Null){
 					garbageValue = Garbage.TSPIN_PENTA + 2 * clearDiff;
+					}
 				else
 					garbageValue = Garbage.PENTA + clearDiff;
 				break;
 		}
+
+		_manager.CustomStats.type = clearType;
 
 		if (spinbonus != Falling.SpinTypeKind.Null &&
 		    _manager.GameData.Options.SpinBonuses == SpinBonusesType.Handheld &&

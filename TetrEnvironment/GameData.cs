@@ -45,8 +45,10 @@ public class GameData
 			(new Dictionary<string, int?>(), new Dictionary<string, List<GarbageData>>());
 		LastReceivedCount = 0;
 		GarbageAreLockedUntil = 0;
+		TotalQueue = new();
 	}
 
+	public List<Tetromino.MinoType> TotalQueue;
 	public Stats Stats { get; internal set; }
 	public double SubFrame { get; internal set; }
 	public bool LShift { get; internal set; }

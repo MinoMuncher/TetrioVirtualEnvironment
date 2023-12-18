@@ -2,4 +2,6 @@
 /TetrEnvironment/bin/
 /SampleConsole/obj/
 /TetrEnvironment/obj/
+/Server/bin/
+/Server/obj/
 /.idea

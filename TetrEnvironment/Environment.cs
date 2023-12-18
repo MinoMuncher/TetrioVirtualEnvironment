@@ -23,7 +23,8 @@ public class Environment
 
 	//////////Class Data//////////
 	public GameData GameData { get; private set; }
-	public CustomStats CustomStats { get; private set; }
+	public CustomStats CustomStats { get; set; }
+	public List<CustomStats> CustomStatsLog = new();
 	private ServiceProvider _provider;
 
 	//////////Data//////////

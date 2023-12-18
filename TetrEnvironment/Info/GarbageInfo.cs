@@ -120,6 +120,7 @@ public class GarbageInfo
 
 	public void FightLines(int attackLines)
 	{
+		_manager.CustomStats.attack.Add(attackLines);
 		int newGarbage = 0;
 		if (_manager.GameData.Options.GarbageTargetBonus == GarbageTargetBonusType.Defensive)
 			newGarbage += (int)(_manager.GameData.GarbageBonus * _manager.GameData.Options.GarbageMultiplier);
@@ -173,6 +174,7 @@ public class GarbageInfo
 
 	public void IncomingAttack(GarbageData data, string? target, int? targetCid)
 	{
+		if (data.amt > 0) _manager.CustomStats.attackRecieved.Add((int)data.amt);
 		if (_manager.GameData.Options.Passthrough == PassthroughType.Consistent && target != null)
 			data.amt = CounterAttack(data, target);
 		else

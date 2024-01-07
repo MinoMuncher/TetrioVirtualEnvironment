@@ -56,7 +56,7 @@ public class LineInfo
 			var flag = false;
 			for (int x = 0; x < _manager.BoardInfo.Width; x++)
 			{
-				if (_manager.GameData.Board[x + line * _manager.BoardInfo.Width] == Tetromino.MinoType.Empty)
+				if (_manager.GameData.Board[x + line * _manager.BoardInfo.Width] == Tetromino.MinoType.Garbage)
 				{
 					flag = true;
 					break;

@@ -141,9 +141,6 @@ public class FallInfo
 		    _manager.GameData.Falling.ForceLock ||
 		    _manager.GameData.Falling.LockResets > _manager.GameData.Options.LockResets &&
 		    !_manager.GameData.Options.InfiniteMovement){
-				var stamp = _manager.CurrentFrame + _manager.GameData.SubFrame;
-				_manager.CustomStats.frameDelay = stamp - _manager.CustomStats.frameStamp;
-				_manager.CustomStats.frameStamp = stamp;
 				Lock(value);
 			}
 	}
@@ -170,10 +167,30 @@ public class FallInfo
 			Next(null);
 
 		_manager.CustomStats.board = (Tetromino.MinoType[]?) _manager.GameData.Board.Clone();
-		
+
+		var stamp = _manager.CurrentFrame + _manager.GameData.SubFrame;
+		_manager.CustomStats.frameDelay = stamp - _manager.CustomStats.frameStamp;
+
+		var q = new List<Tetromino.MinoType>
+        {
+            _manager.GameData.Hold
+        };
+		foreach (var next in _manager.GameData.Bag)
+		{
+			q.Add(next);
+		}
+		var queue = q.ToArray();
+	
+
+		_manager.CustomStats.queue = queue;
+
 		_manager.CustomStatsLog.Add(_manager.CustomStats.Clone());
-		_manager.CustomStats = new();
-	}
+
+        _manager.CustomStats = new()
+        {
+            frameStamp = stamp
+        };
+    }
 
 	//empty means first swap,
 	//null means normal,

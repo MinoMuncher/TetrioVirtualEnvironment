@@ -21,6 +21,8 @@ public class CustomStats
     public int lastAttackCol = -1;
     public Tetromino.MinoType[] ?board { get;  set; }
 
+    public Tetromino.MinoType[] ?queue { get; set;}
+
 
     public CustomStats Clone()
     {
@@ -39,7 +41,7 @@ public class CustomStats
             attackRecieved=attackRecieved.ToList(),
             attackTanked=attackTanked.ToList(),
             board= board==null ? null : (Tetromino.MinoType[])board.Clone(),
-
+            queue = queue==null ? null : (Tetromino.MinoType[])queue.Clone(),
         };
     }
 }

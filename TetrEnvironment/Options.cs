@@ -6,6 +6,13 @@ namespace TetrEnvironment;
 public class Options
 {
 	public int Version { get; internal set; }
+	public bool Levels { get; internal set; }
+	public double GBase { get; internal set; }
+	public double GSpeed { get; internal set; }
+	public double? LevelSpeed { get; internal set; }
+	public bool MasterLevels { get; internal set; }
+	public bool LevelStatic { get; internal set; }
+	public double? LevelStaticSpeed { get; internal set; }
 	public double GravityIncrease { get; internal set; }
 	public int GravityMargin { get; internal set; }
 	public double Gravity { get; internal set; }
@@ -46,6 +53,12 @@ public class Options
 
 	public Options(EventFullData fullData)
 	{
+		Levels = fullData.options.levels ?? false;
+		GBase = fullData.options.gbase ?? 0.65;
+		GSpeed = fullData.options.gspeed ?? 0.007;
+		LevelSpeed = fullData.options.levelspeed ?? 0.42;
+		MasterLevels = fullData.options.masterlevels ?? false;
+
 		Version = fullData.options.version;
 		GravityIncrease = fullData.options.gincrease ?? 0;
 		GravityMargin = fullData.options.gmargin ?? 0;
@@ -71,7 +84,7 @@ public class Options
 		Passthrough = fullData.options.passthrough ?? PassthroughType.Limited;
 		GarbageSpeed = fullData.options.garbagespeed ?? 20;
 		BagType = fullData.options.bagtype ?? BagType.Bag7;
-        GarbagePhase = fullData.options.garbagephase == null ? 0 : (fullData.options.garbagephase == true ? 1 : 0);
+		GarbagePhase = (fullData.options.garbagephase as int?) ?? 0;
 		GarbageQueue = fullData.options.garbagequeue ?? false;
 		GarbageHoleSize = fullData.options.garbageholesize ?? 1;
 		AllClears = fullData.options.allclears ?? true;

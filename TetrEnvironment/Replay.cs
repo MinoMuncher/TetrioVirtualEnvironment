@@ -5,7 +5,16 @@ namespace TetrEnvironment;
 
 public class Replay
 {
-	private readonly IReplayData _replayData;
+	public enum ReplayStatusEnum
+	{
+		Initialized,
+		Loaded,
+		End
+	}
+
+	public ReplayStatusEnum ReplayStatus;
+
+	public readonly IReplayData ReplayData;
 
 	//TODO: プロパティ使ってフレーム取得
 	public List<Environment> Environments { get; private set; }
@@ -14,13 +23,13 @@ public class Replay
 	public Replay(IReplayData replayData)
 	{
 		Environments = new List<Environment>();
-		_replayData = replayData;
+		ReplayData = replayData;
+		ReplayStatus = ReplayStatusEnum.Initialized;
+		Usernames = ReplayData.GetUsernames();
 	}
 
 	public void LoadGame(int gameIndex)
 	{
-		Usernames = _replayData.GetUsernames();
-
 		Environments.Clear();
 
 		if (Usernames.Length > 2)
@@ -28,10 +37,12 @@ public class Replay
 
 		for (int playerIndex = 0; playerIndex < Usernames.Length; playerIndex++)
 		{
-			var events = _replayData.GetReplayEvents(Usernames[playerIndex], gameIndex);
-			(_replayData as ReplayDataTTRM)?.ProcessReplayData((_replayData as ReplayDataTTRM), events);
-			Environments.Add(new Environment(events));
+			var events = ReplayData.GetReplayEvents(Usernames[playerIndex], gameIndex);
+			(ReplayData as ReplayDataTTRM)?.ProcessReplayData((ReplayData as ReplayDataTTRM), events);
+			Environments.Add(new Environment(events, ReplayData.GetGameType()));
 		}
+
+		ReplayStatus = ReplayStatusEnum.Loaded;
 	}
 
 	public void JumpFrame(int frame)
@@ -63,16 +74,15 @@ public class Replay
 
 	public bool NextFrame()
 	{
-		var flag = false;
 		foreach (var environment in Environments)
 		{
 			if (!environment.NextFrame())
-				flag = true;
+			{
+				ReplayStatus = ReplayStatusEnum.End;
+				return false;
+			}
 		}
 
-		if (flag)
-			return false;
-		else
-			return true;
+		return true;
 	}
 }

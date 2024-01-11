@@ -30,8 +30,9 @@ public class Environment
 	//////////Data//////////
 	private readonly IReadOnlyList<Event> _events;
 	private readonly EventFullData _eventFull;
+	private readonly GameType? _gameType;
 	public string? Username { get; private set; }
-	public bool[] PressedKeys { get; private set; }
+	public bool[] PressingKeys { get; private set; }
 
 	public int CurrentFrame
 	{
@@ -39,7 +40,7 @@ public class Environment
 		set => _manager.FrameInfo.CurrentFrame = value;
 	}
 
-	public Environment(IReadOnlyList<Event> events)
+	public Environment(IReadOnlyList<Event> events, GameType? gametype)
 	{
 		_manager = this;
 		_events = events;
@@ -54,9 +55,18 @@ public class Environment
 				"some of games in this replay has no FULL event! it will be ignored in TETR.IO. please consider to remove spetific game.");
 		}
 
+		_gameType = gametype;
 		Reset();
 
 		Username = _eventFull.options.username;
+	}
+
+	//for self environment
+	public Environment(EventFullData fullData)
+	{
+		_manager = this;
+		_eventFull = fullData;
+		Reset();
 	}
 
 	private void SolveWithDI(ServiceProvider provider)
@@ -71,9 +81,6 @@ public class Environment
 		BagInfo = provider.GetService<BagInfo>() ?? throw new InvalidOperationException();
 		CustomStats = provider.GetService<CustomStats>() ?? throw new InvalidOperationException();
 		LineInfo = provider.GetService<LineInfo>() ?? throw new InvalidOperationException();
-		//
-
-		//	GameData = _provider.GetService<GameData>() ?? throw new InvalidOperationException();
 	}
 
 	private void InitDI(EventFullData fullData, ref ServiceProvider provider)
@@ -109,15 +116,14 @@ public class Environment
 		provider = service.BuildServiceProvider();
 	}
 
+
 	public bool NextFrame()
 	{
 		if (_manager.FrameInfo._currentIndex >= _events.Count)
 			return false;
 
 		GameData.SubFrame = 0;
-		if (_manager.Username == "ponpoko")
-			Debug.WriteLine(_manager.GameData.LDas);
-		_manager.FrameInfo.PullEvent(_events);
+		_manager.FrameInfo.PullEvents(_events);
 		CurrentFrame++;
 
 		_manager.HandleInfo.ProcessShift(false, 1 - GameData.SubFrame);
@@ -141,11 +147,45 @@ public class Environment
 		return true;
 	}
 
+	/// <summary>
+	/// for self environment
+	/// </summary>
+	/// <param name="event"></param>
+	public void NextFrame(Queue<Event> events)
+	{
+		GameData.SubFrame = 0;
+
+		while (events.Count != 0)
+		{
+			var @event = events.Dequeue();
+			_manager.FrameInfo.PullEvent(@event);
+		}
+
+		CurrentFrame++;
+
+		_manager.HandleInfo.ProcessShift(false, 1 - GameData.SubFrame);
+		_manager.FallInfo.FallEvent(null, 1 - GameData.SubFrame);
+		_manager.WaitingFrameInfo.ExcuteWaitingFrames();
+
+		if (_manager.GameData.Options.GravityIncrease > 0 &&
+		    CurrentFrame > _manager.GameData.Options.GravityMargin)
+			_manager.GameData.Gravity += _manager.GameData.Options.GravityIncrease / 60;
+
+		if (_manager.GameData.Options.GarbageIncrease > 0 &&
+		    CurrentFrame > _manager.GameData.Options.GarbageMargin)
+			_manager.GameData.Options.GarbageMultiplier += _manager.GameData.Options.GarbageIncrease / 60;
+
+		if (_manager.GameData.Options.GarbageCapIncrease > 0)
+			_manager.GameData.Options.GarbageCap += _manager.GameData.Options.GarbageCapIncrease / 60;
+	}
+
+
 	public void Reset()
 	{
 		InitDI(_eventFull, ref _provider);
 		SolveWithDI(_provider);
-		GameData = new GameData(_provider);
-		PressedKeys = new bool[8];
+		GameData = new GameData();
+		GameData.Initialize(_provider, _gameType);
+		PressingKeys = new bool[8];
 	}
 }

@@ -17,7 +17,7 @@ public class HandleInfo
 	{
 		_manager.CustomStats.keypresses+=1;
 		if ((int)@event.key < 8)
-			_manager.PressedKeys[(int)@event.key] = true;
+			_manager.PressingKeys[(int)@event.key] = true;
 		
 		if (@event.subframe > _manager.GameData.SubFrame)
 		{
@@ -139,7 +139,7 @@ public class HandleInfo
 	public void KeyUp(EventKeyInputData @event)
 	{
 		if ((int)@event.key < 8)
-			_manager.PressedKeys[(int)@event.key] = false;
+			_manager.PressingKeys[(int)@event.key] = false;
 		
 		if (@event.subframe > _manager.GameData.SubFrame)
 		{

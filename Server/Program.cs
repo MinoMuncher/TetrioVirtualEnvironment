@@ -40,13 +40,15 @@ namespace SimpleWebServer
                 {
 
                     string content = await new System.IO.StreamReader(context.Request.Body).ReadToEndAsync();
-                    var replayData = ReplayLoader.ParseReplay(content, Util.IsMulti(ref content) ? ReplayKind.TTRM : ReplayKind.TTR);
-
+                    var IsMulti = Util.IsMulti(ref content);
+                    var replayData = ReplayLoader.ParseReplay(content, IsMulti ? ReplayKind.TTRM : ReplayKind.TTR);
                     var replayCount = replayData.GetGamesCount();
                     var failLoads = 0;
                     Dictionary<string, List<List<CustomStats>>> playerLogs = new();
-
                     Replay replay = new Replay(replayData);
+
+                    var usernames = replayData.GetUsernames();
+
                     for (int i = 0; i < replayData.GetGamesCount(); i++)
                     {
                         try
@@ -55,17 +57,20 @@ namespace SimpleWebServer
                             while (replay.NextFrame()) { }
                             foreach (var env in replay.Environments)
                             {
-                                if (!playerLogs.ContainsKey(env.Username)) playerLogs.Add(env.Username, new());
+                                var username = IsMulti ? env.Username ?? "" : usernames[0];
+                                if (!playerLogs.ContainsKey(username)) playerLogs.Add(username, new());
                                 List<List<CustomStats>> value;
-                                playerLogs.TryGetValue(env.Username, out value);
+                                playerLogs.TryGetValue(username, out value);
                                 value.Add(env.CustomStatsLog);
                             }
                         }
                         catch (Exception e)
                         {
+                            Console.WriteLine(e);
                             failLoads += 1;
                         }
                     }
+
                     Dictionary<string, object> output = new();
                     output.Add("brokenGames", failLoads);
                     output.Add("playerLogs", playerLogs);

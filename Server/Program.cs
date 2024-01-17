@@ -29,20 +29,24 @@ class TCPServer
             // Enter the listening loop
             while (true)
             {
-                Console.Write("Waiting for a connection... ");
-
                 // Accept the TcpClient connection
                 TcpClient client = server.AcceptTcpClient();
-                Console.WriteLine("Connected!");
 
                 // Process the client request
-                HandleClientRequest(client);
+                try
+                {
+                    HandleClientRequest(client);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error: {ex}");
+                }
                 client.Close();
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error: {ex}");
+            Console.WriteLine($"Critical Error: {ex}");
         }
         finally
         {
@@ -62,6 +66,38 @@ class TCPServer
 
         var IsMulti = Util.IsMulti(ref replayString);
         var replayData = ReplayLoader.ParseReplay(replayString, IsMulti ? ReplayKind.TTRM : ReplayKind.TTR);
+
+        int version;
+        if (IsMulti)
+        {
+            var fullDataString = (replayData as ReplayDataTTRM)?.data?[0]?.replays[0]?.events?.First(ev => ev.type == EventType.Full)?.data?.ToString();
+            JsonDocument json = JsonDocument.Parse(fullDataString!);
+            json.RootElement.GetProperty("options").TryGetProperty("version", out JsonElement versionElement);
+            version = int.Parse(versionElement.ToString());
+            if (version < 16)
+            {
+                writer.WriteLine("false");
+                writer.Flush();
+                return;
+            }
+        }
+        else
+        {
+            var fullDataString = (replayData as ReplayDataTTR)?.data?.events?.First(ev => ev.type == EventType.Full)?.data?.ToString();
+            JsonDocument json = JsonDocument.Parse(fullDataString!);
+            json.RootElement.GetProperty("options").TryGetProperty("version", out JsonElement versionElement);
+            version = int.Parse(versionElement.ToString());
+            if (version < 15)
+            {
+                writer.WriteLine("false");
+                writer.Flush();
+                return;
+            }
+        }
+
+        writer.WriteLine("true");
+        writer.Flush();
+
         var numGames = replayData.GetGamesCount();
 
         var usernames = replayData.GetUsernames();
@@ -85,7 +121,10 @@ class TCPServer
                 {
                     continue;
                 }
-                (replayData as ReplayDataTTRM)?.ProcessReplayData(replayData as ReplayDataTTRM, events);
+                if (IsMulti)
+                {
+                    (replayData as ReplayDataTTRM)?.ProcessReplayData(replayData as ReplayDataTTRM, events);
+                }
                 var env = new TetrEnvironment.Environment(events, replayData.GetGameType());
                 while (env.NextFrame()) { }
                 writer.WriteLine(JsonSerializer.Serialize(env.CustomStatsLog));

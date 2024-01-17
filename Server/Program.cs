@@ -1,91 +1,96 @@
-﻿// See https://aka.ms/new-console-template for more information
-using System;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-
-using System.Text.Json;
-using TetrEnvironment;
+﻿using System.Text.Json;
+using TetrLoader.JsonClass;
 using TetrLoader;
 using TetrLoader.Enum;
 
-namespace SimpleWebServer
-{
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            CreateWebHostBuilder(args).Build().Run();
-        }
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
 
-        public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
-    new WebHostBuilder()
-        .UseKestrel(options =>
+class TCPServer
+{
+    static void Main()
+    {
+        TcpListener? server = null;
+        try
         {
-            options.ListenAnyIP(8080); // Change the port number here
-            options.Limits.MaxRequestBodySize = null;
-        })
-        .UseStartup<Startup>();
+            // Set the IP address and port number
+            IPAddress ipAddress = IPAddress.Parse("127.0.0.1");
+            int port = 8080;
+
+            // Create a TcpListener
+            server = new TcpListener(ipAddress, port);
+
+            // Start listening for client requests
+            server.Start();
+
+            Console.WriteLine($"Server listening on {ipAddress}:{port}");
+
+            // Enter the listening loop
+            while (true)
+            {
+                Console.Write("Waiting for a connection... ");
+
+                // Accept the TcpClient connection
+                TcpClient client = server.AcceptTcpClient();
+                Console.WriteLine("Connected!");
+
+                // Process the client request
+                HandleClientRequest(client);
+                client.Close();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex}");
+        }
+        finally
+        {
+            // Stop the server if an exception occurs
+            server?.Stop();
+        }
     }
 
-
-    public class Startup
+    static void HandleClientRequest(TcpClient client)
     {
+        NetworkStream stream = client.GetStream();
+        StreamReader reader = new(stream, Encoding.UTF8);
+        StreamWriter writer = new(stream, Encoding.UTF8);
 
-        public void Configure(IApplicationBuilder app)
+
+        string replayString = reader.ReadLine()!;
+
+        var IsMulti = Util.IsMulti(ref replayString);
+        var replayData = ReplayLoader.ParseReplay(replayString, IsMulti ? ReplayKind.TTRM : ReplayKind.TTR);
+        var numGames = replayData.GetGamesCount();
+
+        var usernames = replayData.GetUsernames();
+
+        writer.WriteLine(string.Join(' ', usernames));
+        writer.WriteLine(numGames.ToString());
+        writer.Flush();
+
+        var numUsernames = ushort.Parse(reader.ReadLine()!);
+
+
+        for (int i = 0; i < numUsernames; i++)
         {
-            app.Run(async context =>
+            var usernameString = reader.ReadLine()!;
+            var username = usernameString.Trim(new char[] { '\uFEFF', '\u200B' });
+            for (int j = 0; j < numGames; j++)
             {
-                if (context.Request.Method == "POST")
+
+                var events = replayData.GetReplayEvents(username, j);
+                if (events == null)
                 {
-
-                    string content = await new System.IO.StreamReader(context.Request.Body).ReadToEndAsync();
-                    var IsMulti = Util.IsMulti(ref content);
-                    var replayData = ReplayLoader.ParseReplay(content, IsMulti ? ReplayKind.TTRM : ReplayKind.TTR);
-                    var replayCount = replayData.GetGamesCount();
-                    var failLoads = 0;
-                    Dictionary<string, List<List<CustomStats>>> playerLogs = new();
-                    Replay replay = new Replay(replayData);
-
-                    var usernames = replayData.GetUsernames();
-
-                    for (int i = 0; i < replayData.GetGamesCount(); i++)
-                    {
-                        try
-                        {
-                            replay.LoadGame(i);
-                            while (replay.NextFrame()) { }
-                            foreach (var env in replay.Environments)
-                            {
-                                var username = IsMulti ? env.Username ?? "" : usernames[0];
-                                if (!playerLogs.ContainsKey(username)) playerLogs.Add(username, new());
-                                List<List<CustomStats>> value;
-                                playerLogs.TryGetValue(username, out value);
-                                value.Add(env.CustomStatsLog);
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine(e);
-                            failLoads += 1;
-                        }
-                    }
-
-                    Dictionary<string, object> output = new();
-                    output.Add("brokenGames", failLoads);
-                    output.Add("playerLogs", playerLogs);
-                    output.Add("totalGames", replayCount);
-
-                    context.Response.ContentType = "application/json";
-                    string outputString = JsonSerializer.Serialize(output);
-                    await context.Response.WriteAsync(outputString);
+                    continue;
                 }
-                else
-                {
-                    context.Response.StatusCode = 405; // Method Not Allowed
-                    await context.Response.WriteAsync("Only POST requests are supported.");
-                }
-            });
+                (replayData as ReplayDataTTRM)?.ProcessReplayData(replayData as ReplayDataTTRM, events);
+                var env = new TetrEnvironment.Environment(events, replayData.GetGameType());
+                while (env.NextFrame()) { }
+                writer.WriteLine(JsonSerializer.Serialize(env.CustomStatsLog));
+                writer.Flush();
+            }
         }
     }
 }

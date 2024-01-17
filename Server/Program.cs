@@ -16,7 +16,8 @@ class TCPServer
         {
             // Set the IP address and port number
             IPAddress ipAddress = IPAddress.Parse("127.0.0.1");
-            int port = 8080;
+
+            int port = int.TryParse(Environment.GetEnvironmentVariable("TETRIO_PARSER_PORT"), out int parsedPort) ? parsedPort : 8080;
 
             // Create a TcpListener
             server = new TcpListener(ipAddress, port);

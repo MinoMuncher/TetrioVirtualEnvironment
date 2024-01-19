@@ -69,38 +69,68 @@ class TCPServer
         var replayData = ReplayLoader.ParseReplay(replayString, IsMulti ? ReplayKind.TTRM : ReplayKind.TTR);
 
         int version;
-        if (IsMulti)
+        bool work()
         {
-            var fullDataString = (replayData as ReplayDataTTRM)?.data?[0]?.replays[0]?.events?.First(ev => ev.type == EventType.Full)?.data?.ToString();
-            JsonDocument json = JsonDocument.Parse(fullDataString!);
-            json.RootElement.GetProperty("options").TryGetProperty("version", out JsonElement versionElement);
-            version = int.Parse(versionElement.ToString());
-            if (version < 16)
+            if (IsMulti)
             {
-                writer.WriteLine("false");
-                writer.Flush();
-                return;
+                var fullDataString = (replayData as ReplayDataTTRM)?.data?[0]?.replays[0]?.events?.First(ev => ev.type == EventType.Full)?.data?.ToString();
+                JsonDocument json = JsonDocument.Parse(fullDataString!);
+                json.RootElement.GetProperty("options").TryGetProperty("version", out JsonElement versionElement);
+                version = int.Parse(versionElement.ToString());
+                if (version == 15)
+                {
+                    foreach (var player in (replayData as ReplayDataTTRM)!.data!)
+                    {
+                        foreach (var replay in player.replays)
+                        {
+                            if (replay.events == null) continue;
+                            foreach (var ev in replay.events)
+                            {
+                                if (ev.type != EventType.Ige) continue;
+                                var dataString = ev.data!.ToString();
+                                JsonDocument dataJson = JsonDocument.Parse(dataString!);
+                                dataJson.RootElement.TryGetProperty("type", out JsonElement typeElement);
+                                if (typeElement.ToString() is not "ige") continue;
+                                dataJson.RootElement.GetProperty("data").TryGetProperty("type", out JsonElement dataTypeElement);
+                                if (!(dataTypeElement.ToString() is "interaction" or "interaction_confirm" or "attack")) continue;
+                                return !dataJson.RootElement.GetProperty("data").TryGetProperty("lines", out JsonElement _);
+                            }
+                        }
+                    }
+                    return true;
+                }
+                if (version < 15)
+                {
+                    return false;
+                }
             }
+            else
+            {
+                var fullDataString = (replayData as ReplayDataTTR)?.data?.events?.First(ev => ev.type == EventType.Full)?.data?.ToString();
+                JsonDocument json = JsonDocument.Parse(fullDataString!);
+                json.RootElement.GetProperty("options").TryGetProperty("version", out JsonElement versionElement);
+                version = int.Parse(versionElement.ToString());
+                if (version < 15)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        if (work())
+        {
+            writer.WriteLine("true");
+            writer.Flush();
         }
         else
         {
-            var fullDataString = (replayData as ReplayDataTTR)?.data?.events?.First(ev => ev.type == EventType.Full)?.data?.ToString();
-            JsonDocument json = JsonDocument.Parse(fullDataString!);
-            json.RootElement.GetProperty("options").TryGetProperty("version", out JsonElement versionElement);
-            version = int.Parse(versionElement.ToString());
-            if (version < 15)
-            {
-                writer.WriteLine("false");
-                writer.Flush();
-                return;
-            }
+            writer.WriteLine("false");
+            writer.Flush();
+            return;
         }
 
-        writer.WriteLine("true");
-        writer.Flush();
 
         var numGames = replayData.GetGamesCount();
-
         var usernames = replayData.GetUsernames();
 
         writer.WriteLine(string.Join(' ', usernames));
@@ -116,7 +146,6 @@ class TCPServer
             var username = usernameString.Trim(new char[] { '\uFEFF', '\u200B' });
             for (int j = 0; j < numGames; j++)
             {
-
                 var events = replayData.GetReplayEvents(username, j);
                 if (events == null)
                 {

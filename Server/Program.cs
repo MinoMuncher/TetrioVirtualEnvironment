@@ -73,7 +73,8 @@ class TCPServer
         {
             if (IsMulti)
             {
-                var fullDataString = (replayData as ReplayDataTTRM)?.data?[0]?.replays[0]?.events?.First(ev => ev.type == EventType.Full)?.data?.ToString();
+                var fullDataString = (replayData as ReplayDataTTRM)?.data?[0]?.replays[0]?.events?.FirstOrDefault(ev => ev.type == EventType.Full)?.data?.ToString();
+                if (fullDataString == null) return false;
                 JsonDocument json = JsonDocument.Parse(fullDataString!);
                 json.RootElement.GetProperty("options").TryGetProperty("version", out JsonElement versionElement);
                 version = int.Parse(versionElement.ToString());
@@ -106,7 +107,8 @@ class TCPServer
             }
             else
             {
-                var fullDataString = (replayData as ReplayDataTTR)?.data?.events?.First(ev => ev.type == EventType.Full)?.data?.ToString();
+                var fullDataString = (replayData as ReplayDataTTR)?.data?.events?.FirstOrDefault(ev => ev.type == EventType.Full)?.data?.ToString();
+                if (fullDataString == null) return false;
                 JsonDocument json = JsonDocument.Parse(fullDataString!);
                 json.RootElement.GetProperty("options").TryGetProperty("version", out JsonElement versionElement);
                 version = int.Parse(versionElement.ToString());
@@ -146,11 +148,18 @@ class TCPServer
             var username = usernameString.Trim(new char[] { '\uFEFF', '\u200B' });
             for (int j = 0; j < numGames; j++)
             {
-                var events = replayData.GetReplayEvents(username, j);
-                if (events == null)
+                List<TetrLoader.JsonClass.Event.Event> events;
+                try
                 {
+                    events = replayData.GetReplayEvents(username, j);
+                }
+                catch (Exception)
+                {
+                    writer.WriteLine("CORRUPT");
+                    writer.Flush();
                     continue;
                 }
+
                 if (IsMulti)
                 {
                     (replayData as ReplayDataTTRM)?.ProcessReplayData(replayData as ReplayDataTTRM, events);

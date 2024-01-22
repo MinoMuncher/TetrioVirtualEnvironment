@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using TetrEnvironment.Constants.Kickset;
 using TetrEnvironment.Info;
 using TetrLoader.Enum;
 using TetrLoader.JsonClass.Event;
@@ -8,9 +9,19 @@ namespace TetrEnvironment;
 
 public class Environment
 {
-	private readonly Environment _manager;
+	#region Enum
 
-	//////////Info//////////
+	public enum GameModeEnum
+	{
+		SelfControl,
+		Normal,
+		EventBased
+	}
+
+	#endregion
+
+	#region Infos
+
 	public GarbageInfo GarbageInfo { get; private set; }
 	public HandleInfo HandleInfo { get; private set; }
 	public FallInfo FallInfo { get; private set; }
@@ -28,11 +39,19 @@ public class Environment
 	private ServiceProvider _provider;
 
 	//////////Data//////////
+	#endregion
+
+	#region Fields
+
 	private readonly IReadOnlyList<Event> _events;
-	private readonly EventFullData _eventFull;
 	private readonly GameType? _gameType;
-	public string? Username { get; private set; }
-	public bool[] PressingKeys { get; private set; }
+	private readonly Environment _manager;
+	private ServiceProvider _provider;
+	private readonly EventFullOptionsData _eventFullOptions;
+
+	#endregion
+
+	#region Property
 
 	public int CurrentFrame
 	{
@@ -40,33 +59,69 @@ public class Environment
 		set => _manager.FrameInfo.CurrentFrame = value;
 	}
 
-	public Environment(IReadOnlyList<Event> events, GameType? gametype)
+	public string? Username { get; private set; }
+	public bool[] PressingKeys { get; private set; }
+	public int TotalFrame { get; private set; }
+	public readonly GameModeEnum GameMode;
+	public GameData GameData { get; private set; }
+	public CustomStats CustomStats { get; private set; }
+	public KicksetBase Kickset { get; private set; }
+
+	#endregion
+
+
+	/// <summary>
+	/// normally this is managed by Replay class
+	/// </summary>
+	/// <param name="events">events by IReplayData.GetReplayEvents</param>
+	/// <param name="gametype">for blitz, others will be ignored</param>
+	/// <exception cref="NotImplementedException"></exception>
+	/// <exception cref="Exception"></exception>
+	public Environment(IReadOnlyList<Event>? events, GameType? gametype)
 	{
+		GameMode = GameModeEnum.Normal;
 		_manager = this;
 		_events = events;
 
+		if (events != null &&
+		    events.FirstOrDefault(@event => @event.type == EventType.End) is EventEnd eventEnd)
+			TotalFrame = (int)eventEnd.frame;
+		else //TODO: EventExit instead of EventEnd?
+			throw new Exception("no end event detected!");
+
 		try
 		{
-			_eventFull = (events.First(@event => @event.type == EventType.Full) as EventFull).data;
+			_eventFullOptions = (events.First(@event => @event.type == EventType.Full) as EventFull).data.options;
 		}
 		catch (Exception e)
 		{
 			throw new Exception(
-				"some of games in this replay has no FULL event! it will be ignored in TETR.IO. please consider to remove spetific game.");
+				"some of games in this replay has no Full event! it will be ignored in TETR.IO. please consider to remove spetific game.");
 		}
 
 		_gameType = gametype;
 		Reset();
 
-		Username = _eventFull.options.username;
+		Username = _eventFullOptions.username;
 	}
 
-	//for self environment
-	public Environment(EventFullData fullData)
+	/// <summary>
+	/// for self control 
+	/// </summary>
+	/// <param name="fullOptionsData"></param>
+	public Environment(EventFullOptionsData fullOptionsData)
 	{
+		GameMode = GameModeEnum.SelfControl;
+		TotalFrame = -1;
 		_manager = this;
-		_eventFull = fullData;
+		_eventFullOptions = fullOptionsData;
 		Reset();
+	}
+
+	public Environment(EventFullOptions options)
+	{
+		GameMode = GameModeEnum.EventBased;
+		_manager = this;
 	}
 
 	private void SolveWithDI(ServiceProvider provider)
@@ -83,7 +138,7 @@ public class Environment
 		LineInfo = provider.GetService<LineInfo>() ?? throw new InvalidOperationException();
 	}
 
-	private void InitDI(EventFullData fullData, ref ServiceProvider provider)
+	private void InitDI(EventFullOptionsData fullDataOptions, ref ServiceProvider provider)
 	{
 		ServiceCollection service = new ServiceCollection();
 		service.AddSingleton<BagInfo>();
@@ -101,58 +156,58 @@ public class Environment
 		service.AddSingleton<Options>();
 		service.AddSingleton<Stats>();
 		service.AddSingleton<LineInfo>();
-		service.AddSingleton<EventFullData>(fullData);
+		service.AddSingleton<EventFullOptionsData>(fullDataOptions);
 		service.AddSingleton<Environment>(this);
 		service.AddSingleton<Handling>(new Handling()
 		{
-			ARR = fullData.options.handling.arr ?? 5,
-			DAS = fullData.options.handling.das ?? 12,
-			SDF = fullData.options.handling.sdf ?? 20,
-			DCD = fullData.options.handling.dcd ?? 20,
-			Cancel = fullData.options.handling.cancel ?? false,
-			SafeLock = fullData.options.handling.safelock == true ? 1 : 0,
+			ARR = fullDataOptions.handling.arr ?? 5,
+			DAS = fullDataOptions.handling.das ?? 12,
+			SDF = fullDataOptions.handling.sdf ?? 20,
+			DCD = fullDataOptions.handling.dcd ?? 20,
+			Cancel = fullDataOptions.handling.cancel ?? false,
+			SafeLock = fullDataOptions.handling.safelock == true ? 1 : 0,
 		});
+
+#if DEBUG
+		if (fullDataOptions.handling?.arr == null)
+			Debug.WriteLine("options.handling is initialized by default. it is wrong in most case.");
+#endif
 
 		provider = service.BuildServiceProvider();
 	}
 
-
+	/// <summary>
+	/// for normal
+	/// </summary>
+	/// <returns></returns>
+	/// <exception cref="Exception"></exception>
 	public bool NextFrame()
 	{
-		if (_manager.FrameInfo._currentIndex >= _events.Count)
+		if (GameMode != GameModeEnum.Normal)
+			throw new Exception("This NextFrame function is for normal.");
+
+
+		if (_manager.FrameInfo.CurrentFrame > TotalFrame)
 			return false;
 
 		GameData.SubFrame = 0;
 		_manager.FrameInfo.PullEvents(_events);
 		CurrentFrame++;
 
-		_manager.HandleInfo.ProcessShift(false, 1 - GameData.SubFrame);
-		_manager.FallInfo.FallEvent(null, 1 - GameData.SubFrame);
-		_manager.WaitingFrameInfo.ExcuteWaitingFrames();
-
-		//unsafe waiting
-
-		if (_manager.GameData.Options.GravityIncrease > 0 &&
-		    CurrentFrame > _manager.GameData.Options.GravityMargin)
-			_manager.GameData.Gravity += _manager.GameData.Options.GravityIncrease / 60;
-
-		if (_manager.GameData.Options.GarbageIncrease > 0 &&
-		    CurrentFrame > _manager.GameData.Options.GarbageMargin)
-			_manager.GameData.Options.GarbageMultiplier += _manager.GameData.Options.GarbageIncrease / 60;
-
-		if (_manager.GameData.Options.GarbageCapIncrease > 0)
-			_manager.GameData.Options.GarbageCap += _manager.GameData.Options.GarbageCapIncrease / 60;
-
+		InternalNextFrame();
 
 		return true;
 	}
 
 	/// <summary>
-	/// for self environment
+	/// for self control or event-based
 	/// </summary>
 	/// <param name="event"></param>
 	public void NextFrame(Queue<Event> events)
 	{
+		if (GameMode is GameModeEnum.EventBased or GameModeEnum.SelfControl)
+			throw new Exception("This NextFrame function is for self control　or event-based.");
+
 		GameData.SubFrame = 0;
 
 		while (events.Count != 0)
@@ -162,7 +217,12 @@ public class Environment
 		}
 
 		CurrentFrame++;
+		InternalNextFrame();
+	}
 
+
+	private void InternalNextFrame()
+	{
 		_manager.HandleInfo.ProcessShift(false, 1 - GameData.SubFrame);
 		_manager.FallInfo.FallEvent(null, 1 - GameData.SubFrame);
 		_manager.WaitingFrameInfo.ExcuteWaitingFrames();
@@ -179,10 +239,10 @@ public class Environment
 			_manager.GameData.Options.GarbageCap += _manager.GameData.Options.GarbageCapIncrease / 60;
 	}
 
-
 	public void Reset()
 	{
-		InitDI(_eventFull, ref _provider);
+		Kickset = new KicksetSRSPlus();
+		InitDI(_eventFullOptions, ref _provider);
 		SolveWithDI(_provider);
 		GameData = new GameData();
 		GameData.Initialize(_provider, _gameType);

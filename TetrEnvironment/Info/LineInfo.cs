@@ -1,5 +1,4 @@
 ﻿using TetrEnvironment.Constants;
-using TetrioVirtualEnvironment.Constants;
 using TetrLoader.Enum;
 
 namespace TetrEnvironment.Info;
@@ -16,7 +15,16 @@ public class LineInfo
 	public int ClearLines()
 	{
 		var completedLines = _manager.BoardInfo.GetFullLines();
-		//NOTE: tetrio.jsだとなぜか引数があるけど無視
+		foreach (var y in completedLines)
+		{
+			if (_manager.GameData.Board[0 + y * _manager.BoardInfo.Width] == Tetromino.MinoType.Garbage ||
+			    _manager.GameData.Board[1 + y * _manager.BoardInfo.Width] == Tetromino.MinoType.Garbage)
+				_manager.CustomStats.garbageCleared++;
+			else
+				_manager.CustomStats.stackCleared++;
+		}
+
+		//NOTE: tetrio.jsだとなぜか引数があるけど無視、そもそも引数を受け付けてない
 		var spinType = _manager.FallInfo.IsTspin();
 
 		if (_manager.GameData.Falling.Type == Tetromino.MinoType.T &&
@@ -47,13 +55,12 @@ public class LineInfo
 	{
 		if (value)
 		{
-			
 			_manager.GameData.Stats.Level = newLevel;
 			_manager.GameData.Gravity = Math.Min(int.MaxValue - 1,
 				1.0 / 60 / Math.Pow(
 					Math.Max(0.000000001,
-						(_manager.GameData.Options.GBase  ) - (_manager.GameData.Stats.Level - 1) *
-						(_manager.GameData.Options.GSpeed  )), _manager.GameData.Stats.Level - 1));
+						(_manager.GameData.Options.GBase) - (_manager.GameData.Stats.Level - 1) *
+						(_manager.GameData.Options.GSpeed)), _manager.GameData.Stats.Level - 1));
 			_manager.GameData.Stats.LevelLines = 0;
 
 			if (_manager.GameData.Options.LevelStatic)
@@ -89,7 +96,7 @@ public class LineInfo
 						_manager.GameData.Stats.LevelLinesNeeded = Math.Ceiling(_manager.GameData.Stats.Level *
 							(_manager.GameData.Options.LevelSpeed ?? 1) *
 							5);
-					
+
 					if (_manager.GameData.Options.MasterLevels && _manager.GameData.Stats.Level > 20)
 						_manager.GameData.Options.LockTime = 30 - Math.Min(25, _manager.GameData.Stats.Level - 20);
 					if (_manager.GameData.Options.MasterLevels && _manager.GameData.Stats.Level > 45)
@@ -314,7 +321,7 @@ public class LineInfo
 		}
 		else
 		{
-			var combotable = Garbage.ComboTable[(int)_manager.GameData.Options.ComboTable];
+			var combotable = Garbage.COMBO_TABLE[(int)_manager.GameData.Options.ComboTable];
 			garbageValue += combotable[Math.Max(0, Math.Min(_manager.GameData.Stats.Combo - 2, combotable.Length - 1))];
 		}
 
@@ -365,6 +372,9 @@ public class LineInfo
 		{
 			//AddFire
 		}
+
+		if (completedLineCount != 0)
+			_manager.CustomStats.lineSent += multiplieredGarbage;
 
 		switch (_manager.GameData.Options.GarbageBlocking)
 		{

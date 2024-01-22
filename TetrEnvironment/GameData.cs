@@ -26,11 +26,12 @@ public class GameData
 		Hold = Tetromino.MinoType.Empty;
 		HoldLocked = false;
 
-		var eventFull = provider.GetService<EventFullData>();
+		//next rng
+		var eventFullData = provider.GetService<EventFullOptionsData>();
 		Rng = new Rng();
-		Rng.Init(eventFull.options.seed);
+		Rng.Init(eventFullData.seed);
 		provider.GetService<Environment>().BagInfo.PopulateBag();
-		if (eventFull.options.no_szo == true && Bag.Count != 0)
+		if (eventFullData.no_szo == true && Bag.Count != 0)
 		{
 			for (int i = 0;
 			     i < Bag.Count && (Bag.Peek() is Tetromino.MinoType.S or Tetromino.MinoType.Z or Tetromino.MinoType.O);

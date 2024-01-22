@@ -1,5 +1,5 @@
 ﻿using TetrEnvironment.Constants;
-using TetrioVirtualEnvironment.Constants;
+using TetrEnvironment.Constants.Kickset;
 using TetrLoader.Enum;
 
 namespace TetrEnvironment.Info;
@@ -132,7 +132,7 @@ public class FallInfo
 		if (_manager.GameData.Options.Version >= 15)
 			_manager.GameData.Falling.Locking += subframe;
 		else
-			_manager.GameData.Falling.Locking ++;
+			_manager.GameData.Falling.Locking++;
 
 		if (!_manager.GameData.Falling.Floored)
 			_manager.GameData.Falling.Floored = true;
@@ -152,9 +152,10 @@ public class FallInfo
 		_manager.GameData.Falling.Sleep = true;
 
 		_manager.BoardInfo.PushActiveToStack();
+		_manager.GameData.Stats.PiecesPlaced++;
 
 		if (!emptyDrop && _manager.GameData.Handling.SafeLock != 0)
-			_manager.GameData.Handling.SafeLock = 7;
+			_manager.GameData.Falling.SafeLock = 7;
 
 		var lines = _manager.LineInfo.ClearLines();
 		var are = lines != 0 ? _manager.GameData.Options.LineClearAre : _manager.GameData.Options.Are;
@@ -212,12 +213,12 @@ public class FallInfo
 			_manager.GameData.Falling.Type = (Tetromino.MinoType)newMino;
 
 		var type = _manager.GameData.Falling.Type;
-		var offset = Kickset.ADDITIONAL_OFFSETS ?? Kickset.ADDITIONAL_OFFSETS_EMPTY;
+		var offset = _manager.Kickset.ADDITIONAL_OFFSETS ?? _manager.Kickset.ADDITIONAL_OFFSETS_EMPTY;
 		int spawnRotation;
-		if (Kickset.SPAWN_ROTATION == null)
+		if (_manager.Kickset.SPAWN_ROTATION == null)
 			spawnRotation = 0;
 		else
-			spawnRotation = Kickset.SPAWN_ROTATION[(int)type];
+			spawnRotation = _manager.Kickset.SPAWN_ROTATION[(int)type];
 
 		_manager.GameData.Falling.Aox = (int)offset[spawnRotation].x;
 		_manager.GameData.Falling.Aoy = (int)offset[spawnRotation].y;
@@ -261,15 +262,23 @@ public class FallInfo
 
 		if (_manager.GameData.Falling.Ihs)
 		{
+			//TODO: t.setoptions.display_hold && !t.setoptions.display_hold
+			_manager.GameData.Falling.Ihs = false;
 			if (!_manager.GameData.HoldLocked)
 				SwapHold();
 		}
 
 		if (_manager.GameData.Falling.Irs != 0)
-			_manager.HandleInfo.RotatePiece((spawnRotation + _manager.GameData.Falling.Irs) % 14);
+		{
+			_manager.HandleInfo.RotatePiece((spawnRotation + _manager.GameData.Falling.Irs) % 4);
+			_manager.GameData.Falling.Irs = 0;
+		}
 
-		_manager.GameData.Falling.Irs = 0;
-		_manager.GameData.Falling.Ihs = false;
+		if (_manager.GameData.Options.Version >= 17)
+		{
+			if (Is20G())
+				SlamToFloor();
+		}
 	}
 
 	public void SwapHold()
@@ -365,5 +374,27 @@ public class FallInfo
 			spinType = Falling.SpinTypeKind.Normal;
 
 		return spinType;
+	}
+
+	public bool Is20G()
+	{
+		if (_manager.GameData.Options.Version < 17)
+			throw new Exception(
+				"The 20G check should not be called before TETR.IO engine version 17.");
+
+		var boardHeight = _manager.GameData.Options.BoardHeight;
+		if (_manager.GameData.SoftDrop)
+			return _manager.GameData.Handling.SDF == 41 ||
+			       _manager.GameData.Gravity * _manager.GameData.Handling.SDF >= boardHeight;
+		else
+			return _manager.GameData.Gravity >= boardHeight;
+	}
+
+	public void SlamToFloor()
+	{
+		var tempGravity = _manager.GameData.Gravity;
+		_manager.GameData.Gravity = int.MaxValue;
+		FallEvent(null, 1);
+		_manager.GameData.Gravity = tempGravity;
 	}
 }

@@ -46,7 +46,6 @@ public class Environment
 	private readonly IReadOnlyList<Event> _events;
 	private readonly GameType? _gameType;
 	private readonly Environment _manager;
-	private ServiceProvider _provider;
 	private readonly EventFullOptionsData _eventFullOptions;
 
 	#endregion
@@ -63,8 +62,6 @@ public class Environment
 	public bool[] PressingKeys { get; private set; }
 	public int TotalFrame { get; private set; }
 	public readonly GameModeEnum GameMode;
-	public GameData GameData { get; private set; }
-	public CustomStats CustomStats { get; private set; }
 	public KicksetBase Kickset { get; private set; }
 
 	#endregion

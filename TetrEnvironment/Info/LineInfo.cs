@@ -15,14 +15,6 @@ public class LineInfo
 	public int ClearLines()
 	{
 		var completedLines = _manager.BoardInfo.GetFullLines();
-		foreach (var y in completedLines)
-		{
-			if (_manager.GameData.Board[0 + y * _manager.BoardInfo.Width] == Tetromino.MinoType.Garbage ||
-			    _manager.GameData.Board[1 + y * _manager.BoardInfo.Width] == Tetromino.MinoType.Garbage)
-				_manager.CustomStats.garbageCleared++;
-			else
-				_manager.CustomStats.stackCleared++;
-		}
 
 		//NOTE: tetrio.jsだとなぜか引数があるけど無視、そもそも引数を受け付けてない
 		var spinType = _manager.FallInfo.IsTspin();
@@ -372,9 +364,6 @@ public class LineInfo
 		{
 			//AddFire
 		}
-
-		if (completedLineCount != 0)
-			_manager.CustomStats.lineSent += multiplieredGarbage;
 
 		switch (_manager.GameData.Options.GarbageBlocking)
 		{

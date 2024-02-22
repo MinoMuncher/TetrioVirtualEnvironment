@@ -66,7 +66,7 @@ class TCPServer
         string replayString = reader.ReadLine()!;
 
         var IsMulti = Util.IsMulti(ref replayString);
-        var replayData = ReplayLoader.ParseReplay(replayString, IsMulti ? ReplayKind.TTRM : ReplayKind.TTR);
+        var replayData = ReplayLoader.ParseReplay(ref replayString, IsMulti ? ReplayKind.TTRM : ReplayKind.TTR);
 
         int version;
         bool work()

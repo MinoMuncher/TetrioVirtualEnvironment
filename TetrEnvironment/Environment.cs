@@ -72,7 +72,7 @@ public class Environment
 	public int TotalFrame { get; private set; }
 	public readonly GameModeEnum GameMode;
 	public GameData GameData { get; private set; }
-	public CustomStats CustomStats { get; private set; }
+	public CustomStats CustomStats { get; set; }
 	public KicksetBase Kickset { get; private set; }
 	public bool IsDead { get; internal set; }
 

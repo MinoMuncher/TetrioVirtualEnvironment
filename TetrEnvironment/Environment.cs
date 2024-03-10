@@ -74,8 +74,8 @@ public class Environment
 	public GameData GameData { get; private set; }
 	public CustomStats CustomStats { get; set; }
 	public KicksetBase Kickset { get; private set; }
-	public bool IsDead { get; internal set; }
-
+	public bool IsDied { get; internal set; }
+	public int DeadFrameDiff { get; internal set; }
 	#endregion
 
 
@@ -274,7 +274,8 @@ public class Environment
 
 	public void Reset()
 	{
-		IsDead = false;
+		IsDied = false;
+		DeadFrameDiff = -1;
 		Kickset = new KicksetSRSPlus();
 		InitDI(_eventFullOptions, _eventFullGame, _customInjection, ref _provider);
 		SolveFieldWithDI(_provider);

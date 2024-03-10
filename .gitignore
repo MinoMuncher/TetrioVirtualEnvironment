@@ -1,7 +1,13 @@
 /SampleConsole/bin/
 /TetrEnvironment/bin/
+/TestProject/bin/
+
 /SampleConsole/obj/
 /TetrEnvironment/obj/
+/TestProject/obj/
 /Server/bin/
 /Server/obj/
 /.idea
+*.ttrm
+*.ttr
+*.user

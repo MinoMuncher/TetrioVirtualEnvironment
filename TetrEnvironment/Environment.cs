@@ -64,7 +64,7 @@ public class Environment
 	public int CurrentFrame
 	{
 		get => _manager.FrameInfo.CurrentFrame;
-		set => _manager.FrameInfo.CurrentFrame = value;
+		private set => _manager.FrameInfo.CurrentFrame = value;
 	}
 
 	public string? Username { get; private set; }
@@ -76,6 +76,7 @@ public class Environment
 	public KicksetBase Kickset { get; private set; }
 	public bool IsDied { get; internal set; }
 	public int DeadFrameDiff { get; internal set; }
+
 	#endregion
 
 
@@ -96,11 +97,13 @@ public class Environment
 		    events.FirstOrDefault(@event => @event.type == EventType.End) is EventEnd eventEnd)
 			TotalFrame = (int)eventEnd.frame;
 		else //TODO: EventExit instead of EventEnd?
-			throw new Exception("no end event detected!");	
+			throw new Exception("no end event detected!");
 
 		try
 		{
-			_eventFullOptions = (events.First(@event => @event.type == EventType.Full) as EventFull).data.options;
+			var options = (events.FirstOrDefault(@event => @event.type == EventType.Full) as EventFull)?.data?.options;
+		//	options ??= eventEnd.data.export.options;
+			_eventFullOptions = options;
 		}
 		catch (Exception e)
 		{
@@ -235,7 +238,7 @@ public class Environment
 	public void NextFrame(Queue<Event>? events)
 	{
 		if (GameMode != GameModeEnum.SelfControl)
-			throw new Exception("This NextFrame function is for self control　or event-based.");
+			throw new Exception("This NextFrame function is for self control or event-based.");
 
 		GameData.SubFrame = 0;
 

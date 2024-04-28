@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net7.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>ProcessMunch</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\TetrLoader\TetrLoader\TetrLoader.csproj" />
+      <ProjectReference Include="..\TetrEnvironment\TetrEnvironment.csproj" />
+    </ItemGroup>
+
+</Project>

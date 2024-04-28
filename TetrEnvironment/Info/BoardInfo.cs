@@ -4,9 +4,10 @@ namespace TetrEnvironment.Info;
 
 public class BoardInfo
 {
-	private readonly Environment　_manager;
+	private readonly Environment _manager;
 
 	//default size for now
+	public static int SYSTEM_HEIGHT = 40;
 	public readonly int Width = 10;
 	public readonly int Height = 40;
 	public readonly int VisibleHeight = 20;
@@ -137,10 +138,14 @@ public class BoardInfo
 
 	public bool PushGarbageLine(int column, int size)
 	{
-		if(size>0){
-			if(column == _manager.CustomStats.lastAttackCol){
-				_manager.CustomStats.attackTanked[_manager.CustomStats.attackTanked.Count-1]+=size;
-			}else{
+		if (size > 0)
+		{
+			if (column == _manager.CustomStats.lastAttackCol)
+			{
+				_manager.CustomStats.attackTanked[_manager.CustomStats.attackTanked.Count - 1] += size;
+			}
+			else
+			{
 				_manager.CustomStats.attackTanked.Add(size);
 				_manager.CustomStats.lastAttackCol = column;
 			}

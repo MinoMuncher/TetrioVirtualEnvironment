@@ -75,7 +75,7 @@ public class BagInfo
 				list = newArray.ToList();
 				break;
 
-			case BagType.Bag7_oo:
+			case BagType.Bag7OO:
 				throw new NotImplementedException();
 				minos = (Tetromino.MinoType[])Tetromino.MINOTYPES.Clone();
 				break;

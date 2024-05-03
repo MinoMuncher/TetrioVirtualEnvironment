@@ -13,3 +13,5 @@
 *.ttrm
 *.ttr
 *.user
+
+/.vs/

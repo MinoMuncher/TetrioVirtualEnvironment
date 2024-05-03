@@ -10,7 +10,8 @@ namespace Munch;
 
 public class Munch
 {
-	public static IEnumerable<List<CustomStats>?> ProcessReplay(string username, string replayJson)
+	public static IEnumerable<List<CustomStats>?> ProcessReplay(string username, string replayJson,
+		List<string> errors)
 	{
 		var isMulti = Util.IsMulti(ref replayJson);
 		var replayData = ReplayLoader.ParseReplay(ref replayJson, isMulti ? ReplayKind.TTRM : ReplayKind.TTR);
@@ -18,11 +19,11 @@ public class Munch
 		var version = replayData.GetVersion(0);
 
 		if (version <= 15)
-			throw new Exception("not supported");
+			throw new MunchUnsupportedException($"version {version} is not supported");
 
 		var numGames = replayData.GetGamesCount();
 		if (!replayData.GetUsernames().Contains(username))
-			throw new Exception("存在しないユーザー");
+			throw new MunchUnexpectedUserException($"unexpected user:{username}");
 
 		for (var gameIndex = 0; gameIndex < numGames; gameIndex++)
 		{
@@ -42,8 +43,8 @@ public class Munch
 			}
 			catch
 			{
+				errors.Add($"failed to parse {username}/{gameIndex}");
 				//TODO: username gameIndex (gameid)
-				Console.WriteLine($"failed to parse, skipped:{username}/{gameIndex}");
 				continue;
 			}
 
